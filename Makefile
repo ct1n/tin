@@ -7,17 +7,19 @@ LDFLAGS=-m elf_i386
 all: bootblock
 
 mkboot: mkboot.c
-	$(CC) -o mkboot mkboot.c
+	gcc -o mkboot mkboot.c
 
 bootblock: bootasm.S mkboot
 	$(CC) $(CFLAGS) -c bootasm.S
-	$(LD) $(LDFLAGS) -N -e start -Ttext 0x7C00 -o bootblock.o bootasm.o
+	$(CC) $(CFLAGS) -O -c bootmain.c
+	$(LD) $(LDFLAGS) -N -e start -Ttext 0x7C00 -o bootblock.o bootasm.o bootmain.o
 	objcopy -S -O binary -j .text bootblock.o bootblock
+	./mkboot bootblock
 
 -include *.d
 
 clean:
-	rm -f *.o *.d bootblock
+	rm -f *.o *.d bootblock mkboot
 
 qemu-gdb: bootblock
 	qemu -serial mon:stdio -S -gdb tcp::26000 bootblock
