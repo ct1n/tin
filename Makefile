@@ -4,7 +4,12 @@ CFLAGS=-fno-pic -static -fno-builtin -nostdinc -I. -fno-strict-aliasing -Wall -M
 ASFLAGS=-m32 -gdwarf-2 -Wa,-divide
 LDFLAGS=-m elf_i386
 
-all: bootblock
+all: tin.img
+
+tin.img: bootblock kernel
+	dd if=/dev/zero of=tin.img count=10000
+	dd if=bootblock of=tin.img conv=notrunc
+	dd if=kernel of=tin.img seek=1 conv=notrunc
 
 mkboot: mkboot.c
 	gcc -o mkboot mkboot.c
@@ -16,10 +21,13 @@ bootblock: bootasm.S mkboot
 	objcopy -S -O binary -j .text bootblock.o bootblock
 	./mkboot bootblock
 
+kernel: entry.o main.o
+	$(LD) -T kernel.ld -o kernel entry.o main.o
+
 -include *.d
 
 clean:
-	rm -f *.o *.d bootblock mkboot
+	rm -f *.o *.d bootblock mkboot kernel tin.img
 
-qemu-gdb: bootblock
-	qemu -serial mon:stdio -S -gdb tcp::26000 bootblock
+qemu-gdb: kernel
+	qemu -serial mon:stdio -S -gdb tcp::26000 tin.img
